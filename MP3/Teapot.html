@@ -1,0 +1,149 @@
+<!DOCTYPE HTML> 
+<html lang="en"> 
+<head>
+<title>Goverdh2_ MP3 </title>
+<meta charset="utf-8"> 
+</head>
+
+    
+<script id="shader-vs" type="x-shader/x-vertex">
+   attribute vec3 aVertexPosition;
+   attribute vec3 aVertexNormal;
+
+   uniform mat4 uMVMatrix;
+   uniform mat4 uPMatrix;
+   uniform mat3 uNMatrix;
+   uniform vec3 uLightPosition;
+   uniform vec3 uAmbientLightColor;
+   uniform vec3 uDiffuseLightColor;
+   uniform vec3 uSpecularLightColor;
+
+   
+   varying vec4 vPosition;
+   varying vec3 vTransformedNormal;
+   varying vec4 vColor;
+   const float reflectionn = 32.0;
+   void main(void) { 
+
+    vec4 vertexPositionEye4 = uMVMatrix * vec4(aVertexPosition, 1.0);
+    vec3 vertexPositionEye3 = vertexPositionEye4.xyz / vertexPositionEye4.w;
+  
+   
+    vec3 vectorToLightSource = normalize(uLightPosition - vertexPositionEye3);
+    
+    
+    vec3 normalEye = normalize(uNMatrix * aVertexNormal);
+    
+    
+    float diffuseLightWeightning = max(dot(normalEye, 
+                                    vectorToLightSource), 0.0);
+                                       
+    
+    vec3 reflectionVector = normalize(reflect(-vectorToLightSource, 
+                                             normalEye));
+    
+   
+    vec3 viewVectorEye = -normalize(vertexPositionEye3);
+    
+    float rdotv = max(dot(reflectionVector, viewVectorEye), 0.0);
+    
+    float specularLightWeightning = pow(rdotv, reflectionn);
+
+   
+    vColor = vec4((uAmbientLightColor
+                + uDiffuseLightColor * diffuseLightWeightning
+                + uSpecularLightColor * specularLightWeightning),1.0);
+    
+     vPosition = uMVMatrix*vec4(aVertexPosition, 1.0);
+     gl_Position= uPMatrix*vPosition;
+     vTransformedNormal = uNMatrix*aVertexNormal;
+
+    
+    }
+</script>
+  
+<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+ 
+
+
+
+varying vec4 vPosition;
+varying vec3 vTransformedNormal;
+varying vec4 vColor;
+
+
+uniform samplerCube uCubeSampler;
+ 
+void main() {
+
+  vec3 normal = normalize(vTransformedNormal);
+  vec3 eyeDirection = normalize(-vPosition.xyz);
+  vec3 lookup = reflect(eyeDirection, normal);
+  vec4 fcolor = textureCube(uCubeSampler, -lookup);
+  vec3 cf,ct;
+  float af, at;
+  cf=vColor.rgb;
+  af=vColor.a;
+  ct=fcolor.rgb;
+  at=fcolor.a;
+  gl_FragColor = vec4(ct*cf, 0.23*at*af);
+  
+   
+}
+</script>
+
+<script id="terrain-vs" type="x-shader/x-vertex">
+   attribute vec3 aVertexNormal1;
+   attribute vec3 aVertexPosition1;
+   attribute vec2 aTexCoord;
+ 
+   
+   uniform mat4 uMVMatrix1;
+   uniform mat4 uPMatrix1;
+   uniform mat3 uNMatrix1;
+   uniform sampler2D uImage;
+  
+   varying vec4 vPosition;
+   varying vec4 vtexColor;
+   
+   
+   void main(void) { 
+     
+    
+    
+     vPosition = vec4(aVertexPosition1, 1.0);
+     vPosition.z = texture2D(uImage, aTexCoord).z -1.0;
+     gl_Position= uPMatrix1*uMVMatrix1*vPosition;
+    
+     vtexColor =texture2D(uImage, aTexCoord);
+
+    
+    }
+</script>
+
+<script id="terrain-fs" type="x-shader/x-fragment">
+precision mediump float;
+ 
+
+
+varying vec4 vtexColor;
+void main() {
+
+        
+        gl_FragColor=vtexColor;
+   
+}
+</script>
+
+<script src="jquery-2.1.0.min.js"></script>
+<script src="gl-matrix-min.js"></script> 
+<script src="webgl-utils.js"></script>   
+<script src="terrainModeling.js"></script>  
+<script src="HelloTexture.js"></script> 
+
+
+<body onload="startup();">
+<canvas id="myGLCanvas" width="1450" height="800"></canvas>
+</body>
+</html>
